@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+composer config --global gitlab-token.gitlab.dev.omegapart.com glpat-zyAMN_3fPEvTxtvUdjP9
+
+if [ ! -d /var/www/html/.composer/ ]; then
+    mkdir /var/www/html/.composer/
+fi
+
+if [ ! -d /var/log/supervisor ]; then
+    mkdir -p /var/log/supervisor
+fi
+
+chown -R sail:sail /var/www/html/
+chmod -R ugo+rw /var/www/html/.composer
+chmod -R ugo+rw /tmp/xdebug_remote.log
+
+su -s /bin/sh -c "composer config --global gitlab-token.gitlab.dev.omegapart.com glpat-zyAMN_3fPEvTxtvUdjP9" sail
+su -s /bin/sh -c "composer config --global http-basic.nova.laravel.com 4oxdev@gmail.com 765JGCRhYWdK62GqjZTqlcgJH0gx8fFd4DPLFxqLErbakmHlcf" sail
+su -s /bin/sh -c "composer install" sail
+
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

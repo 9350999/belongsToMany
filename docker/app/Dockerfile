@@ -1,0 +1,45 @@
+FROM alpine:3.18
+
+ARG WWWGROUP=1001
+ARG NODE_VERSION=18
+ARG POSTGRES_VERSION=15
+
+WORKDIR /var/www/html
+
+ENV TZ=UTC
+
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN apk update && \
+    apk upgrade && \
+    apk add --no-cache \
+        curl procps zip unzip git supervisor build-base bash \
+        postgresql15-client yarn \
+        libjpeg-turbo-dev libpng-dev libwebp-dev freetype-dev \
+        php82 php82-common php82-cli php82-dev php82-ctype \
+        php82-pgsql php82-gd php82-curl php82-mbstring \
+        php82-xml php82-zip php82-bcmath php82-redis \
+        php82-xdebug php82-openssl php82-phar php82-pdo \
+        php82-simplexml php82-dom php82-tokenizer php82-pgsql \
+        php82-fileinfo php82-ftp php82-pecl-imagick php82-pdo_pgsql \
+        php82-xmlwriter php82-xmlreader php82-simplexml php82-iconv \
+        php82-pcntl php82-posix imagemagick imagemagick-dev shadow nodejs npm \
+    && npm install -g pnpm \
+    && ln -s /usr/bin/php82 /usr/bin/php \
+    && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin/ --filename=composer \
+    && rm -rf /var/cache/apk/* /tmp/* \
+    && addgroup -g $WWWGROUP sail \
+    && adduser -D -h /var/www/html -G sail -u $WWWGROUP sail \
+    && mkdir -p /usr/local/bin/ /etc/supervisor/conf.d/ /etc/php/8.2/cli/conf.d/
+
+COPY start-container /usr/local/bin/start-container
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY php.ini /etc/php82/conf.d/99-sail.ini
+RUN sed -i 's/memory_limit = 128M/memory_limit = 2048M/' /etc/php82/php.ini
+RUN echo 'zend_extension=xdebug.so' > /etc/php82/conf.d/50_xdebug.ini
+RUN chmod +x /usr/local/bin/start-container && rm -rf /tmp/*
+
+EXPOSE 8000
+
+ENTRYPOINT ["start-container"]
+
